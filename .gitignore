@@ -1,0 +1,19 @@
+.DS_Store
+
+# Editor folders
+.vs/
+.vscode/
+
+# Frontend runtime/build output
+Frontend/node_modules/
+Frontend/dist/
+
+# .NET build output
+Backend/bin/
+Backend/obj/
+
+# Backend runtime data
+Backend/Data/
+Backend/*.db
+Backend/*.sqlite
+Backend/appsettings.Development.json
