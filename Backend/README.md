@@ -15,7 +15,10 @@ The API starts on `http://localhost:5050`.
 ## Endpoints
 
 - `GET /api/quiz/questions`
-Returns the quiz questions and answer options.
+Returns quiz questions and answer options with:
+
+- `index` for display order
+- `id` as UUID
 
 - `POST /api/quiz/submit`
 Scores a submission and returns:
@@ -35,8 +38,8 @@ Request body:
 {
   "candidateName": "Jane",
   "answers": {
-    "1": 2,
-    "2": 3
+    "66142ce2-dc8e-4122-b95f-d4a5cfa18144": "3daf599e-a859-44f5-86bc-dccf366dbb72",
+    "327c94f1-3a9c-42b7-a6f6-d0862b228d71": "cc7cb837-59f6-42bc-b50f-0f7b89fe0e92"
   }
 }
 ```

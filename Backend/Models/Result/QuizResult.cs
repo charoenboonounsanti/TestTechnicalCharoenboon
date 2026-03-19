@@ -6,5 +6,5 @@ public class QuizResult
     public int Score { get; set; }
     public int TotalQuestions { get; set; }
     public DateTime SubmittedTime { get; set; }
-    public Dictionary<int, int> Answers { get; set; } = new();
+    public Dictionary<Guid, Guid> Answers { get; set; } = new();
 }

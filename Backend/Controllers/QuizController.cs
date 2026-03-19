@@ -24,6 +24,7 @@ public class QuizController : ControllerBase
         var questions = await _quizRepository.GetAllQuestionsAsync();
         var questionDtos = questions.Select(q => new QuestionDto
         {
+            Index = q.Index,
             Id = q.Id,
             Text = q.Text,
             AnswerOptions = q.AnswerOptions
@@ -40,16 +41,19 @@ public class QuizController : ControllerBase
         }
 
         var questions = await _quizRepository.GetAllQuestionsAsync();
-        
+        var validationErrors = ValidateAnswers(request.Answers, questions, out var parsedAnswers);
+        if (validationErrors.Count > 0)
+        {
+            return BadRequest(new ValidationProblemDetails(validationErrors));
+        }
+
         int score = 0;
         foreach (var question in questions)
         {
-            if (request.Answers.TryGetValue(question.Id, out int selectedOptionId))
+            if (parsedAnswers.TryGetValue(question.Id, out Guid selectedOptionId) &&
+                selectedOptionId == question.CorrectAnswerId)
             {
-                if (selectedOptionId == question.CorrectAnswerId)
-                {
-                    score++;
-                }
+                score++;
             }
         }
 
@@ -59,7 +63,7 @@ public class QuizController : ControllerBase
             Score = score,
             TotalQuestions = questions.Count,
             SubmittedTime = DateTime.UtcNow,
-            Answers = request.Answers
+            Answers = parsedAnswers
         };
 
         await _resultRepository.SaveResultAsync(result);
@@ -72,10 +76,72 @@ public class QuizController : ControllerBase
             SubmittedTime = result.SubmittedTime
         });
     }
+
+    private static Dictionary<string, string[]> ValidateAnswers(
+        Dictionary<string, string> answers,
+        List<Question> questions,
+        out Dictionary<Guid, Guid> parsedAnswers)
+    {
+        parsedAnswers = new Dictionary<Guid, Guid>();
+        var errors = new Dictionary<string, string[]>();
+        var questionMap = questions.ToDictionary(question => question.Id);
+
+        if (answers.Count == 0)
+        {
+            errors["answers"] = ["At least one answer is required."];
+            return errors;
+        }
+
+        foreach (var (questionId, selectedOptionId) in answers)
+        {
+            if (!Guid.TryParse(questionId, out var parsedQuestionId))
+            {
+                errors[$"answers.{questionId}"] = ["Question ID must be a valid UUID."];
+                continue;
+            }
+
+            if (!questionMap.TryGetValue(parsedQuestionId, out var question))
+            {
+                errors[$"answers.{questionId}"] = ["Question does not exist."];
+                continue;
+            }
+
+            if (!Guid.TryParse(selectedOptionId, out var parsedAnswerId))
+            {
+                errors[$"answers.{questionId}"] = ["Answer option ID must be a valid UUID."];
+                continue;
+            }
+
+            var answerExists = question.AnswerOptions.Any(option => option.Id == parsedAnswerId);
+            if (!answerExists)
+            {
+                errors[$"answers.{questionId}"] = ["Selected answer option does not exist for this question."];
+                continue;
+            }
+
+            parsedAnswers[parsedQuestionId] = parsedAnswerId;
+        }
+
+        var answeredQuestionIds = parsedAnswers.Keys.ToHashSet();
+        var missingQuestionIds = questions
+            .Select(question => question.Id)
+            .Where(questionId => !answeredQuestionIds.Contains(questionId))
+            .ToList();
+
+        if (missingQuestionIds.Count > 0)
+        {
+            errors["answers.missing"] =
+            [
+                $"Missing answers for question IDs: {string.Join(", ", missingQuestionIds)}."
+            ];
+        }
+
+        return errors;
+    }
 }
 
 public class SubmitQuizRequest
 {
     public string CandidateName { get; set; } = string.Empty;
-    public Dictionary<int, int> Answers { get; set; } = new(); // questionId -> selectedOptionId
+    public Dictionary<string, string> Answers { get; set; } = new(); // questionId -> selectedOptionId
 }

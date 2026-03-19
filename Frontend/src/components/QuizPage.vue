@@ -16,7 +16,7 @@
 
       <div class="questions-container">
         <div v-for="question in questions" :key="question.id" class="question-block">
-          <h3>{{ question.id }}. {{ question.text }}</h3>
+          <h3>{{ question.index }}. {{ question.text }}</h3>
           <div class="options">
             <div v-for="option in question.answerOptions" :key="option.id" class="option">
               <input
@@ -24,11 +24,11 @@
                 type="radio"
                 :name="`question-${question.id}`"
                 :value="option.id"
-                v-model.number="answers[question.id]"
+                v-model="answers[question.id]"
                 class="radio-input"
               />
               <label :for="`q${question.id}o${option.id}`" class="option-label">
-                {{ option.text }}
+                {{ option.index }}. {{ option.text }}
               </label>
             </div>
           </div>
@@ -148,7 +148,7 @@ const submitQuiz = async () => {
 
   const unansweredQuestions = questions.value.filter(q => answers.value[q.id] === null || answers.value[q.id] === undefined);
   if (unansweredQuestions.length > 0) {
-    errorMessage.value = `กรุณาตอบข้อที่ ${unansweredQuestions[0].id} ให้ครบถ้วน`;
+    errorMessage.value = `กรุณาตอบข้อที่ ${unansweredQuestions[0].index} ให้ครบถ้วน`;
     return;
   }
 
